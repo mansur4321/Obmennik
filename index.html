@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta
+			http-equiv="X-UA-Compatible"
+			content="IE=edge"
+		/>
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1.0"
+		/>
+		<link
+			rel="preconnect"
+			href="https://fonts.googleapis.com"
+		/>
+		<link
+			rel="preconnect"
+			href="https://fonts.gstatic.com"
+			crossorigin
+		/>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap"
+			rel="stylesheet"
+		/>
+		<link
+			rel="stylesheet"
+			href="./style.css"
+		/>
+	</head>
+
+	<body>
+		<div
+			class="exchanger-wrapper"
+			id="exchanger"
+		>
+			<div class="exchanger">
+				<p class="exchanger__title">Exchange Crypto</p>
+
+				<p class="exchanger__subtitle">You Send</p>
+
+				<div class="exchange-input-from exchange-input-wrapper">
+					<input
+						type="number"
+						class="exchange-input"
+					/>
+
+					<div
+						:class="{
+							'select-cryptos': true,
+							'select-cryptos--active': activeCrypto.from
+						}"
+					>
+						<p
+							class="select-cryptos__title"
+							@click="openCryptoFrom"
+						>
+							{{ from }}
+						</p>
+						<div class="select-cryptos__options">
+							<div
+								v-for="option in optionsFrom"
+								:key="option.name"
+								:class="{
+                                    'select-cryptos__option': true,
+                                    'select-cryptos__option--selected' : option.isSelected 
+                                }"
+								@click="changeCryptoFrom(option.name)"
+							>
+								{{ option.name }}
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<p class="exchanger__subtitle">You Get</p>
+
+				<div class="exchange-input-to exchange-input-wrapper">
+					<input
+						type="number"
+						class="exchange-input"
+					/>
+
+					<div
+						:class="{
+							'select-cryptos': true,
+							'select-cryptos--active': activeCrypto.to
+						}"
+					>
+						<p
+							class="select-cryptos__title"
+							@click="openCryptoTo"
+						>
+							{{ to }}
+						</p>
+						<div class="select-cryptos__options">
+							<div
+								v-for="option in optionsTo"
+								:key="option.name"
+								:class="{
+                                    'select-cryptos__option': true,
+                                    'select-cryptos__option--selected': option.isSelected
+                                }"
+								@click="changeCryptoTo(option.name)"
+							>
+								{{ option.name }}
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</body>
+
+	<script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+	<script src="./main.js"></script>
+</html>
