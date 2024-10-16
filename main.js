@@ -1,4 +1,5 @@
-const HOST = "http://localhost:3000";
+const HOST = "https://flichain-flichain.amvera.io";
+const tg = window.Telegram.WebApp;
 
 async function createExchangeTransaction({ from, to }, amountFrom, userAddress) {
 	const api = `${HOST}/create-exchange-transaction`;
