@@ -6,22 +6,48 @@ const TelegramBot = require("node-telegram-bot-api");
 
 const CRYPTO_API_KEY = "076f5977a4bd8b19590b0b61a0912acfe373f3830800c1eaa638c222354338cd";
 const TG_API_KEY = "8045675354:AAHoNUt297syjuvwT7HOa-rHIjoQjchVG34";
+const TG_BOT_URL = "https://t.me/Flichain_bot";
+const MINI_APP_URL = "https://t.me/Flichain_bot/flichain";
 
 const commands = [
 	{
 		command: "start",
-		description: "Запуск бота",
+		description: "Start chatting with a bot",
 	},
 	{
 		command: "ref",
-		description: "Получить реферальную ссылку",
+		description: "Get a referral link",
 	},
 ];
 
-let usersRefsMap = new Map();
+let usersRefsMap = null;
+fs.readFile("users-data.txt", "utf8", function (error, fileContent) {
+	if (error || !fileContent.toString()) {
+		usersRefsMap = new Map();
+		console.log(error);
+		return;
+	}
+
+	usersRefsMap = new Map([...JSON.parse()]);
+});
+
+function checkUserIsSubscribed(id) {
+	const userId = typeof id !== "string" ? id.toString() : id;
+	return usersRefsMap.has(userId);
+}
+
+function getUserReferrersData(id) {
+	const userId = typeof id !== "string" ? id.toString() : id;
+
+	if (!usersRefsMap.has(userId)) {
+		return null;
+	}
+
+	return usersRefsMap.get(userId).referrers;
+}
 
 function addUser(id, name) {
-	if (usersRefsMap.has(id)) return;
+	if (checkUserIsSubscribed(id)) return;
 
 	usersRefsMap.set(id, {
 		userID: id,
@@ -29,11 +55,18 @@ function addUser(id, name) {
 		referrers: [],
 	});
 
-	console.log(usersRefsMap);
+	let map = [];
+	for (let entry of usersRefsMap) {
+		map.push(entry);
+	}
+
+	fs.writeFile("users-data.txt", JSON.stringify(map), function (error) {
+		if (error) return console.log(error);
+	});
 }
 
 function addReferrer(userId, referrerId, referrerName) {
-	if (!usersRefsMap.has(userId)) return;
+	if (!checkUserIsSubscribed(userId)) return;
 
 	const userData = usersRefsMap.get(userId);
 
@@ -51,7 +84,14 @@ function addReferrer(userId, referrerId, referrerName) {
 		],
 	});
 
-	console.log(usersRefsMap, usersRefsMap.get(userId));
+	let map = [];
+	for (let entry of usersRefsMap) {
+		map.push(entry);
+	}
+
+	fs.writeFile("users-data.txt", JSON.stringify(map), function (error) {
+		if (error) return console.log(error);
+	});
 }
 
 const bot = new TelegramBot(TG_API_KEY, {
@@ -64,29 +104,39 @@ const bot = new TelegramBot(TG_API_KEY, {
 bot.setMyCommands(commands);
 
 bot.onText(/\/start(.*)/, async (msg, match) => {
-	console.log("start", msg.text, msg);
 	const chatId = msg.chat.id;
+	const userId = typeof msg.from.id !== "string" ? msg.from.id.toString() : msg.from.id;
 	const referrer = match[1] ? match[1].trim() : "";
-	console.log("referrer: ", referrer, "!");
+
 	try {
-		addUser(msg.from.id, msg.from.username);
-		await bot.sendMessage(chatId, `Вы запустили бота!`);
+		addUser(userId, msg.from.username);
+		await bot.sendMessage(chatId, `Welcome! Now you can use the most convenient exchanger in TG`);
+
+		console.log("====================", msg.text, msg, usersRefsMap);
 
 		if (!referrer) return;
 
-		addReferrer(referrer, msg.from.id, msg.from.username);
-		await bot.sendMessage(chatId, `Вы пришли по реферальной ссылке: ${referrer}`);
+		addReferrer(referrer, userId, msg.from.username);
+		await bot.sendMessage(chatId, `You've come at the invitation from: ${referrer}`);
 	} catch (err) {
 		console.log(err);
-		await bot.sendMessage(chatId, msg.text + " - не понял команду я твою, Лох");
+		await bot.sendMessage(msg.text + " - I don't understand the command. There are only commands /start and /ref");
 	}
 });
 bot.onText(/\/ref/, async (msg) => {
-	console.log("ref", msg.text, msg);
 	const chatId = msg.chat.id;
 
 	try {
-		await bot.sendMessage(chatId, `Ваша реферальная ссылка - ${"https://t.me/Flichain_bot"}?start=${msg.from.id}`);
+		await bot.sendMessage(
+			chatId,
+			`
+			Your referral links for bot and tg mini app: \n
+			Link to bot - ${TG_BOT_URL}?start=${msg.from.id} \n
+			Link to tg mini app - ${MINI_APP_URL}?start=${msg.from.id}
+			`
+		);
+
+		console.log("====================", msg.text, msg, usersRefsMap);
 	} catch (err) {
 		console.log(err);
 	}
@@ -95,7 +145,7 @@ bot.onText(/\/ref/, async (msg) => {
 const server = http
 	.createServer(async (request, response) => {
 		if (request.method === "GET") {
-			if (request.url === "/") {
+			if (request.url === "/" || request.url.includes("/?")) {
 				fs.readFile("index.html", (err, data) => {
 					if (err) {
 						response.writeHead(500);
@@ -134,6 +184,52 @@ const server = http
 				});
 			}
 
+			if (request.url.startsWith("/static")) {
+				const imgName = request.url;
+
+				fs.readFile(`./${imgName}`, (err, data) => {
+					if (err) {
+						response.writeHead(500);
+						response.end(`Возникла ошибка при загрузке картинки ${imgName}. Опять эти невзгоды!`);
+						return;
+					}
+
+					response.writeHead(200, { "Content-Type": "image/png" });
+					response.end(data);
+				});
+			}
+
+			if (request.url.startsWith("/check-subscribed")) {
+				const { user_id } = querystring.parse(request.url.split("?")[1]);
+
+				response.writeHead(200, { "Content-Type": "application/json" });
+				response.end(
+					JSON.stringify({
+						userId: user_id,
+						isSubscribed: checkUserIsSubscribed(user_id),
+					})
+				);
+			}
+
+			if (request.url.startsWith("/user")) {
+				const { user_id } = querystring.parse(request.url.split("?")[1]);
+				let data = getUserReferrersData(user_id);
+
+				if (data === null) {
+					response.writeHead(500, { "Content-Type": "application/json" });
+					response.end();
+					return;
+				}
+
+				const correctData = {
+					refLink: `${MINI_APP_URL}?start=${user_id}`,
+					referrers: data,
+				};
+
+				response.writeHead(200, { "Content-Type": "application/json" });
+				response.end(JSON.stringify(correctData));
+			}
+
 			if (request.url === "/get-currencies-data") {
 				const currencies = ["btc", "ton", "sol", "trx"];
 				const api = `https://api.changenow.io/v1/currencies/`;
@@ -161,7 +257,7 @@ const server = http
 				} catch (err) {
 					console.error(err);
 					response.writeHead(400, { "Content-Type": "application/json" });
-					response.end(err);
+					response.end(JSON.stringify(err));
 				}
 			}
 
@@ -188,7 +284,7 @@ const server = http
 				} catch (err) {
 					console.error(err);
 					response.writeHead(400, { "Content-Type": "application/json" });
-					response.end(err);
+					response.end(JSON.stringify(err));
 				}
 			}
 
@@ -214,7 +310,7 @@ const server = http
 				} catch (err) {
 					console.error(err);
 					response.writeHead(400, { "Content-Type": "application/json" });
-					response.end(err);
+					response.end(JSON.stringify(err));
 				}
 			}
 
@@ -240,7 +336,7 @@ const server = http
 				} catch (err) {
 					console.error(err);
 					response.writeHead(400, { "Content-Type": "application/json" });
-					response.end(err);
+					response.end(JSON.stringify(err));
 				}
 			}
 		}
@@ -294,12 +390,12 @@ const server = http
 					} catch (err) {
 						console.error(err);
 						response.writeHead(400, { "Content-Type": "application/json" });
-						response.end(err);
+						response.end(JSON.stringify(err));
 					}
 				});
 			}
 		}
 	})
 	.listen(80, function () {
-		console.log("SERVER HOST - http://localhost:8080");
+		console.log("SERVER HOST - {http://localhost}:80");
 	});
