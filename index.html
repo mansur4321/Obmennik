@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
+		<title>Flichain</title>
 		<meta charset="UTF-8" />
 		<meta
 			http-equiv="X-UA-Compatible"
@@ -20,7 +21,7 @@
 			crossorigin
 		/>
 		<link
-			href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap"
+			href="https://fonts.googleapis.com/css2?family=Lalezar&display=swap"
 			rel="stylesheet"
 		/>
 		<link
@@ -31,216 +32,273 @@
 
 	<body>
 		<div
-			class="exchanger-wrapper"
+			class="container"
 			id="exchanger"
 		>
-			<div class="exchanger">
-				<div v-if="stage === 0">
-					<p class="exchanger__title">Exchange Crypto</p>
+			<div class="header">
+				<a href="https://flichain-flichain.amvera.io/"
+					><img src="https://flichain-flichain.amvera.io/static/logo.png"
+				/></a>
 
-					<p class="exchanger__subtitle">You Send</p>
-
-					<div class="exchange-input-from exchange-input-wrapper">
-						<input
-							type="number"
-							class="exchange-input"
-							v-model="amountFrom"
-							:min="min"
-							:max="max"
-						/>
-
-						<div
-							:class="{
-								'select-cryptos': true,
-								'select-cryptos--active': activeCrypto.from
-							}"
-						>
-							<p
-								class="select-cryptos__title"
-								@click="openCryptoFrom"
+				<div class="title-wrap">
+					<div class="right-text">
+						<div class="flip-wrap">
+							<div class="flip">ETH</div>
+							<div class="flip">FLI</div>
+							<div
+								class="flip"
+								style="color: #b045e8"
 							>
-								<span> {{ currencyFrom.name }} </span>
-							</p>
-							<div class="select-cryptos__options">
-								<div
-									v-for="option in optionsFrom"
-									:key="option.name"
-									:class="{
-                                    'select-cryptos__option': true,
-                                    'select-cryptos__option--selected' : option.isSelected 
-                                }"
-									@click="changeCryptoFrom(option.name)"
-								>
-									<img
-										:src="option.image"
-										style="margin-bottom: -3.5px"
-									/>
-									{{ option.name }}
-								</div>
+								SOL
+							</div>
+							<div
+								class="flip"
+								style="color: #0098ea"
+							>
+								TON
+							</div>
+							<div
+								class="flip"
+								style="color: #6fbcf0"
+							>
+								SUI
 							</div>
 						</div>
 					</div>
+					<div class="left-text">CHAIN</div>
+				</div>
+			</div>
 
-					<p class="exchanger__subtitle">You Get</p>
+			<div class="bodyf">
+				<div v-if="page === 'index'">
+					<div v-if="stage === 1">
+						<div class="input_wrap">
+							<span>You send</span>
 
-					<div class="exchange-input-to exchange-input-wrapper">
-						<input
-							type="number"
-							class="exchange-input"
-							disabled
-							v-model="amountTo"
-						/>
+							<div class="exchange-input-from exchange-input-wrapper">
+								<input
+									type="number"
+									class="exchange-input"
+									v-model="amountFrom"
+									:min="min"
+									:max="max"
+								/>
 
-						<div
-							:class="{
-								'select-cryptos': true,
-								'select-cryptos--active': activeCrypto.to
-							}"
-						>
-							<p
-								class="select-cryptos__title"
-								@click="openCryptoTo"
-							>
-								{{ currencyTo.name }}
-							</p>
-							<div class="select-cryptos__options">
 								<div
-									v-for="option in optionsTo"
-									:key="option.name"
 									:class="{
-                                    'select-cryptos__option': true,
-                                    'select-cryptos__option--selected': option.isSelected
-                                }"
-									@click="changeCryptoTo(option.name)"
+										'select-cryptos': true,
+										'select-cryptos--active': activeCrypto.from
+									}"
 								>
-									<img
-										:src="option.image"
-										style="margin-bottom: -3.5px"
-									/>
-									{{ option.name }}
-								</div>
-							</div>
-						</div>
-					</div>
-
-					<div
-						class="exchange-btn"
-						@click="exchange"
-					>
-						Exchange
-					</div>
-				</div>
-
-				<div
-					class="address-wrapper"
-					v-if="stage === 1"
-				>
-					<p class="exchanger__title">Recipient Wallet</p>
-
-					<div class="exchange-input-wrapper">
-						<input
-							type="text"
-							class="exchange-input exchange-input--text"
-							v-model="userAddress"
-						/>
-					</div>
-
-					<div
-						class="exchange-btn"
-						@click="confirmTransaction"
-					>
-						Confirm
-					</div>
-				</div>
-
-				<div
-					v-if="stage >= 2"
-					class="exchanger__final-stage"
-				>
-					<p class="exchanger__title">
-						Send <span class="exchanger__title--amount">{{ amountFrom }}</span>
-						<span class="exchanger__title--name">{{ currencyFrom.name }}</span> to this address:
-					</p>
-
-					<p class="exchanger__text">
-						{{ adminAddress }}
-						<svg
-							width="17"
-							height="16"
-							viewBox="0 0 17 16"
-							fill="none"
-							xmlns="http://www.w3.org/2000/svg"
-							style="cursor: pointer"
-							@click="copyInClipboard(adminAddress)"
-						>
-							<path
-								d="M7.79199 6.49869C7.25674 6.49869 6.87532 6.89991 6.87532 7.33202V13.332C6.87532 13.7641 7.25674 14.1654 7.79199 14.1654H14.167C14.7022 14.1654 15.0837 13.7641 15.0837 13.332V7.33202C15.0837 6.89991 14.7022 6.49869 14.167 6.49869H7.79199ZM5.87532 7.33202C5.87532 6.29137 6.76243 5.49869 7.79199 5.49869H14.167C15.1965 5.49869 16.0837 6.29137 16.0837 7.33202V13.332C16.0837 14.3727 15.1965 15.1654 14.167 15.1654H7.79199C6.76243 15.1654 5.87532 14.3727 5.87532 13.332V7.33202Z"
-								:fill="colorCopyIcon"
-							></path>
-							<path
-								d="M2.83366 1.83203C2.58109 1.83203 2.34451 1.92674 2.17461 2.08666C2.00573 2.2456 1.91699 2.45447 1.91699 2.66536V8.66536C1.91699 8.87626 2.00573 9.08513 2.17461 9.24407C2.34451 9.40399 2.58109 9.4987 2.83366 9.4987H3.54199C3.81813 9.4987 4.04199 9.72256 4.04199 9.9987C4.04199 10.2748 3.81813 10.4987 3.54199 10.4987H2.83366C2.33478 10.4987 1.85069 10.3125 1.48924 9.97227C1.12677 9.63112 0.916992 9.16171 0.916992 8.66536V2.66536C0.916992 2.16902 1.12677 1.69961 1.48924 1.35846C1.85069 1.01827 2.33478 0.832031 2.83366 0.832031H9.20866C9.70754 0.832031 10.1916 1.01827 10.5531 1.35846C10.9155 1.69961 11.1253 2.16902 11.1253 2.66536V3.33203C11.1253 3.60817 10.9015 3.83203 10.6253 3.83203C10.3492 3.83203 10.1253 3.60817 10.1253 3.33203V2.66536C10.1253 2.45447 10.0366 2.2456 9.86771 2.08666C9.6978 1.92674 9.46123 1.83203 9.20866 1.83203H2.83366Z"
-								:fill="colorCopyIcon"
-							></path>
-						</svg>
-					</p>
-
-					<p class="exchanger__text-min">
-						Final {{ currencyTo.name }} amount:
-						<span>{{ amountTo }}</span>
-					</p>
-
-					<div class="exchanger-status">
-						<div
-							class="exchanger-status__item"
-							v-for="status in statuses"
-							:key="status.name"
-						>
-							{{ status.name }}
-
-							<div class="exchanger-status__svgs">
-								<div
-									class="exchanger-status__svg"
-									v-if="!status.status"
-								>
-									<svg
-										viewBox="0 0 100 100"
-										preserveAspectRatio="xMidYMid"
-										width="29"
-										height="29"
-										style="transform: translateZ(0px)"
+									<p
+										class="select-cryptos__title"
+										@click="openCryptoFrom"
 									>
-										<circle
-											cx="50"
-											cy="50"
-											fill="none"
-											stroke="#00C26F"
-											stroke-width="10"
-											r="35"
-											stroke-dasharray="164.93361431346415 56.97787143782138"
-											transform="rotate(138 50 50)"
+										<span> {{ currencyFrom.name }} </span>
+									</p>
+									<div class="select-cryptos__options">
+										<div
+											v-for="option in optionsFrom"
+											:key="option.name"
+											:class="{
+											'select-cryptos__option': true,
+											'select-cryptos__option--selected' : option.isSelected 
+										}"
+											@click="changeCryptoFrom(option.name)"
 										>
-											<animateTransform
-												attributeName="transform"
-												type="rotate"
-												calcMode="linear"
-												values="0 50 50;360 50 50"
-												keyTimes="0;1"
-												dur="1s"
-												begin="0s"
-												repeatCount="indefinite"
-											></animateTransform>
-										</circle>
-									</svg>
+											<img
+												:src="option.image"
+												style="margin-bottom: -3.5px"
+											/>
+											{{ option.name }}
+										</div>
+									</div>
 								</div>
+							</div>
+						</div>
+						<div class="input_wrap">
+							<span
+								>You get
+								<p>no hidden fee</p></span
+							>
+
+							<div class="exchange-input-to exchange-input-wrapper">
+								<input
+									type="number"
+									class="exchange-input"
+									disabled
+									v-model="amountTo"
+								/>
+
 								<div
-									class="exchanger-status__svg"
-									v-if="status.status"
+									:class="{
+										'select-cryptos': true,
+										'select-cryptos--active': activeCrypto.to
+									}"
 								>
-									✔️
+									<p
+										class="select-cryptos__title"
+										@click="openCryptoTo"
+									>
+										{{ currencyTo.name }}
+									</p>
+									<div class="select-cryptos__options">
+										<div
+											v-for="option in optionsTo"
+											:key="option.name"
+											:class="{
+											'select-cryptos__option': true,
+											'select-cryptos__option--selected': option.isSelected
+										}"
+											@click="changeCryptoTo(option.name)"
+										>
+											<img
+												:src="option.image"
+												style="margin-bottom: -3.5px"
+											/>
+											{{ option.name }}
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="input_wrap">
+							<span>Recipient Wallet</span>
+							<input
+								type="text"
+								class="exchange-input exchange-input--text"
+								v-model="userAddress"
+							/>
+						</div>
+						<button
+							style="cursor: pointer"
+							@click="confirmTransaction"
+						>
+							FAST SWAP
+						</button>
+					</div>
+
+					<div v-if="stage >= 2">
+						<div class="step2_wrap">
+							<span class="step2"
+								>Send <span>{{ amountFrom }} {{ currencyFrom.name }}</span> to this address:</span
+							>
+							<div class="ref_wrap_link">
+								<p style="white-space: normal; display: inline-block; width: 100%">
+									{{ adminAddress }}
+									<img
+										src="https://flichain-flichain.amvera.io/static/icons8-copy-30.png"
+										@click="copyInClipboard(adminAddress)"
+									/>
+								</p>
+							</div>
+
+							<span class="step2">
+								Final <span>{{ currencyTo.name }}</span> amount: <span>{{ amountTo }}</span>
+								<br />
+								<br />
+								Your address:
+								<span style="white-space: normal; display: inline-block; width: 100%"
+									>{{userAddress}}</span
+								>
+							</span>
+
+							<div class="steps_wrap">
+								<div
+									class="steps_wrap__item"
+									v-for="status in statuses"
+									:key="status.name"
+								>
+									<div class="exchanger-status__svgs">
+										<div
+											class="exchanger-status__svg"
+											v-if="!status.status"
+										>
+											<svg
+												viewBox="0 0 100 100"
+												preserveAspectRatio="xMidYMid"
+												width="29"
+												height="29"
+												style="transform: translateZ(0px)"
+											>
+												<circle
+													cx="50"
+													cy="50"
+													fill="none"
+													stroke="#4b9cdb"
+													stroke-width="10"
+													r="35"
+													stroke-dasharray="164.93361431346415 56.97787143782138"
+													transform="rotate(138 50 50)"
+												>
+													<animateTransform
+														attributeName="transform"
+														type="rotate"
+														calcMode="linear"
+														values="0 50 50;360 50 50"
+														keyTimes="0;1"
+														dur="1s"
+														begin="0s"
+														repeatCount="indefinite"
+													></animateTransform>
+												</circle>
+											</svg>
+										</div>
+										<div
+											class="exchanger-status__svg"
+											v-if="status.status"
+										>
+											<img
+												src="./static/icons8-done-64.png"
+												style="height: 30px; width: 30px"
+											/>
+										</div>
+									</div>
+
+									{{ status.name }}
 								</div>
 							</div>
 						</div>
 					</div>
+				</div>
+
+				<div v-if="page === 'friends'">
+					<div class="ref_wrap">
+						<span class="title">Friends</span>
+
+						<div class="ref_wrap_link">
+							<span>invite</span>
+							<p>
+								{{refLink}}
+								<img
+									src="https://flichain-flichain.amvera.io/static/icons8-copy-30.png"
+									@click="copyInClipboard(refLink)"
+								/>
+							</p>
+						</div>
+						<span class="invtitle">You invited: {{referralSubscribers.length}} peoples</span>
+						<ul
+							class="ref_list"
+							v-if="viewRefSubs"
+						>
+							<li
+								v-for="sub in referralSubscribers"
+								:key="sub.referrerID"
+							>
+								{{ sub.referrerName }}
+							</li>
+						</ul>
+					</div>
+				</div>
+
+				<div class="btn_bot">
+					<a @click="changePage('index')"><img src="https://flichain-flichain.amvera.io/static/123.png" /></a>
+					<a @click="changePage('friends')"
+						><img src="https://flichain-flichain.amvera.io/static/345.png"
+					/></a>
+					<a href="https://t.me/+Q-yM91iqoB9lMzIy"
+						><img src="https://flichain-flichain.amvera.io/static/567.png"
+					/></a>
 				</div>
 			</div>
 		</div>

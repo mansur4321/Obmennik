@@ -1,5 +1,42 @@
 const HOST = "https://flichain-flichain.amvera.io";
+const BOT_LINK = "https://t.me/Flichain_bot";
+const QPARAMETR_TG_NAME = "tgWebAppStartParam";
 const tg = window.Telegram.WebApp;
+const urlParams = new URLSearchParams(window.location.search);
+
+async function checkUserIsSubscribed(id) {
+	try {
+		const resp = await fetch(`${HOST}/check-subscribed?user_id=${id}`);
+
+		if (resp.status !== 200) {
+			const errorMessage = await resp.json();
+			throw Error(errorMessage);
+		}
+
+		const message = await resp.json();
+
+		return message.isSubscribed;
+	} catch (err) {
+		console.log(err);
+	}
+}
+
+async function getUserData(id) {
+	try {
+		const resp = await fetch(`${HOST}/user?user_id=${id}`);
+
+		if (resp.status !== 200) {
+			const errorMessage = await resp.json();
+			throw Error(errorMessage);
+		}
+
+		const message = await resp.json();
+
+		return message;
+	} catch (err) {
+		console.log(err);
+	}
+}
 
 async function createExchangeTransaction({ from, to }, amountFrom, userAddress) {
 	const api = `${HOST}/create-exchange-transaction`;
@@ -21,7 +58,7 @@ async function createExchangeTransaction({ from, to }, amountFrom, userAddress) 
 
 		if (resp.status !== 200) {
 			const errorMessage = await resp.json();
-			throw Error(`Ошибка - ${errorMessage}`);
+			throw Error(errorMessage);
 		}
 
 		const message = await resp.json();
@@ -44,7 +81,7 @@ async function getCurrenciesData() {
 
 		if (resp.status !== 200) {
 			const errorMessage = await resp.json();
-			throw Error(`Ошибка - ${errorMessage.error}`);
+			throw Error(errorMessage);
 		}
 
 		const message = await resp.json();
@@ -63,7 +100,7 @@ async function getCurrencyRange(currFrom, currTo) {
 
 		if (resp.status !== 200) {
 			const errorMessage = await resp.json();
-			throw Error(`Ошибка - ${errorMessage.error}`);
+			throw Error(errorMessage);
 		}
 
 		const message = await resp.json();
@@ -82,7 +119,7 @@ async function getEstimatedExchangeAmount({ from, to }, amountFrom) {
 
 		if (resp.status !== 200) {
 			const errorMessage = await resp.json();
-			throw Error(`Ошибка - ${errorMessage.error}`);
+			throw Error(errorMessage);
 		}
 
 		const message = await resp.json();
@@ -101,7 +138,7 @@ async function getTransactionStatus(ID) {
 
 		if (resp.status !== 200) {
 			const errorMessage = await resp.json();
-			throw Error(`Ошибка - ${errorMessage.error}`);
+			throw Error(errorMessage);
 		}
 
 		const message = await resp.json();
@@ -116,9 +153,14 @@ new Vue({
 	el: "#exchanger",
 	data() {
 		return {
+			refLink: "",
+
+			referralSubscribers: [],
+
 			timeout: null,
 
-			stage: 0,
+			page: "index",
+			stage: 1,
 
 			transactionID: "",
 
@@ -203,8 +245,6 @@ new Vue({
 					status: false,
 				},
 			],
-
-			colorCopyIcon: "#808086",
 		};
 	},
 	async created() {
@@ -223,8 +263,21 @@ new Vue({
 
 		await this.recalcFinalAmount();
 	},
+	mounted() {
+		const ref = urlParams.get(QPARAMETR_TG_NAME);
+		const referralCode = ref ? ref : "";
+
+		const user = tg.initDataUnsafe.user;
+		const userId = user ? user.id : "";
+
+		this.checkUserSubscription(userId, referralCode);
+	},
 
 	computed: {
+		viewRefSubs() {
+			return this.referralSubscribers.length > 0;
+		},
+
 		currencyFrom() {
 			return this.optionsFrom.find((option) => option.isSelected);
 		},
@@ -255,6 +308,51 @@ new Vue({
 		},
 	},
 	methods: {
+		resetToStart() {
+			this.timeout = null;
+
+			this.transactionID = "";
+
+			this.userAddress = "";
+			this.adminAddress = "";
+
+			this.activeCrypto = {
+				from: false,
+				to: false,
+			};
+
+			this.changeCryptoFrom(this.optionsFrom[0].name);
+			this.changeCryptoTo(this.optionsFrom[1].name);
+
+			this.page = "index";
+			this.stage = 1;
+		},
+
+		async checkUserSubscription(id, referralCode) {
+			const isSubscribed = await checkUserIsSubscribed(id);
+
+			if (isSubscribed) {
+				this.setReceivedData(id);
+
+				return;
+			}
+
+			// Если пользователь не подписан, перенаправляем его к боту с реферальной ссылкой
+			if (referralCode) {
+				window.location.href = `${BOT_LINK}/?start=${referralCode}`;
+				return;
+			}
+
+			window.location.href = BOT_LINK;
+		},
+		async setReceivedData(id) {
+			const data = await getUserData(id);
+
+			this.refLink = data.refLink;
+
+			this.referralSubscribers = [...data.referrers];
+		},
+
 		async updateAmounts() {
 			this.amountFrom = null;
 
@@ -267,45 +365,37 @@ new Vue({
 			await this.recalcFinalAmount();
 		},
 		async recalcFinalAmount() {
-			try {
-				const recalcAmount = await getEstimatedExchangeAmount(
-					{
-						from: this.currencyFrom.alias,
-						to: this.currencyTo.alias,
-					},
-					this.amountFrom
-				); // API
+			const recalcAmount = await getEstimatedExchangeAmount(
+				{
+					from: this.currencyFrom.alias,
+					to: this.currencyTo.alias,
+				},
+				this.amountFrom
+			); // API
 
-				this.amountTo = recalcAmount;
-			} catch (err) {
-				console.error(err);
-			}
+			this.amountTo = recalcAmount;
 		},
 
-		exchange() {
-			this.stage = 1;
+		changePage(page) {
+			this.page = page;
 		},
 
 		async confirmTransaction() {
-			try {
-				const { payinAddress, id, amount } = await createExchangeTransaction(
-					{
-						from: this.currencyFrom.alias,
-						to: this.currencyTo.alias,
-					},
-					this.amountFrom,
-					this.userAddress
-				); // API
+			const { payinAddress, id, amount } = await createExchangeTransaction(
+				{
+					from: this.currencyFrom.alias,
+					to: this.currencyTo.alias,
+				},
+				this.amountFrom,
+				this.userAddress
+			); // API
 
-				this.transactionID = id;
-				this.amountTo = amount;
-				this.adminAddress = payinAddress;
+			this.transactionID = id;
+			this.amountTo = amount;
+			this.adminAddress = payinAddress;
 
-				this.stage = 2;
-				this.statusChecked();
-			} catch (err) {
-				console.error(err);
-			}
+			this.stage = 2;
+			this.statusChecked();
 		},
 
 		statusChecked() {
@@ -331,9 +421,10 @@ new Vue({
 				}
 
 				if (that.statuses[3].status) {
+					that.resetToStart();
 					clearInterval(statusGetter);
 				}
-			}, 5000);
+			}, 3000);
 		},
 
 		changeCryptoFrom(selectedOption) {
@@ -374,12 +465,6 @@ new Vue({
 
 		copyInClipboard(text) {
 			navigator.clipboard.writeText(text);
-			this.colorCopyIcon = "#227aff";
-
-			const that = this;
-			setTimeout(() => {
-				that.colorCopyIcon = "#808086";
-			}, 2000);
 		},
 	},
 });
